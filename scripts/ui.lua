@@ -227,19 +227,27 @@ BeamCircle.Position = UDim2.new(0, 2, 0.5, -8)
 BeamCircle.BackgroundColor3 = Color3.fromRGB(255,255,255)
 Instance.new("UICorner", BeamCircle).CornerRadius = UDim.new(1,0)
 
+-- ui.lua (Inside the BeamToggleButton.MouseButton1Click connection)
 local beamEnabled = false
 BeamToggleButton.MouseButton1Click:Connect(function()
-	beamEnabled = not beamEnabled
-	-- toggle animation
-	TweenService:Create(BeamToggleButton, TweenInfo.new(0.2), {BackgroundColor3 = beamEnabled and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(40, 40, 45)}):Play()
-	BeamCircle:TweenPosition(beamEnabled and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8), "Out", "Quad", 0.15, true)
-	
-	-- call support functions
-	if beamEnabled then
-		if _G.App.Visuals.EnableBeam then _G.App.Visuals.EnableBeam() end
-	else
-		if _G.App.Visuals.DisableBeam then _G.App.Visuals.DisableBeam() end
-	end
+    beamEnabled = not beamEnabled
+    
+    -- Animation
+    TweenService:Create(BeamToggleButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = beamEnabled and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(40, 40, 45)
+    }):Play()
+    BeamCircle:TweenPosition(beamEnabled and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8), "Out", "Quad", 0.15, true)
+    
+    -- Logic Trigger: Passing "Metal" as the category and "TargetPart" as the instance name
+    if beamEnabled then
+        if _G.App.Visuals.EnableBeam then 
+            _G.App.Visuals.EnableBeam("Metal", "TargetPart") 
+        end
+    else
+        if _G.App.Visuals.DisableBeam then 
+            _G.App.Visuals.DisableBeam("Metal") 
+        end
+    end
 end)
 
 -- Force Visuals active on start

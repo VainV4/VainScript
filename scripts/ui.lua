@@ -3,264 +3,378 @@ local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local CollectionService = game:GetService("CollectionService")
+local Lighting = game:GetService("Lighting")
+
+--// SETTINGS & STATE
+local Settings = {
+    METAL_ESP = { ENABLED = false, COLOR = Color3.fromRGB(0, 170, 255) },
+    STAR_ESP = { ENABLED = false },
+    TREE_ESP = { ENABLED = false, COLOR = Color3.fromRGB(255, 100, 0) },
+    AIM_ASSIST = { ENABLED = false, SMOOTHNESS = 0.15 },
+    VISIBLE = true
+}
+
+local ActiveObjects = {
+    ["metal"] = {},
+    ["star"] = {},
+    ["tree"] = {}
+}
 
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
+local camera = workspace.CurrentCamera
 
---// GUI
+--// UI SETUP
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ScriptHubUI"
+ScreenGui.Name = "VainDashboard_V4"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 999
 ScreenGui.Parent = player:WaitForChild("PlayerGui")
 
---// MAIN FRAME
-local Main = Instance.new("CanvasGroup")
-Main.Size = UDim2.new(0.5, 0, 0.55, 0)
-Main.Position = UDim2.new(0.5, 0, 0.5, 0)
-Main.AnchorPoint = Vector2.new(0.5, 0.5)
-Main.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
-Main.BorderSizePixel = 0
-Main.Parent = ScreenGui
+local blur = Instance.new("BlurEffect", Lighting)
+blur.Size = 20
+blur.Enabled = true
 
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
-Instance.new("UIAspectRatioConstraint", Main).AspectRatio = 1.667
+local MainContainer = Instance.new("Frame", ScreenGui)
+MainContainer.Size = UDim2.new(0.5, 0, 0.55, 0)
+MainContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+MainContainer.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+Instance.new("UICorner", MainContainer).CornerRadius = UDim.new(0, 10)
+Instance.new("UIAspectRatioConstraint", MainContainer).AspectRatio = 1.667
+MainContainer.ClipsDescendants = true
+local MainStroke = Instance.new("UIStroke", MainContainer)
+MainStroke.Thickness = 2
+MainStroke.Color = Color3.fromRGB(45, 45, 50)
 
-local Stroke = Instance.new("UIStroke", Main)
-Stroke.Thickness = 2
-Stroke.Color = Color3.fromRGB(45, 45, 50)
-Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
---// TOP BAR
-local TopBar = Instance.new("Frame")
+-- Top Bar
+local TopBar = Instance.new("Frame", MainContainer)
 TopBar.Size = UDim2.new(1, 0, 0, 40)
 TopBar.BackgroundColor3 = Color3.fromRGB(8, 8, 10)
-TopBar.BorderSizePixel = 0
-TopBar.Parent = Main
 Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 10)
 
-local SearchLabel = Instance.new("TextLabel")
-SearchLabel.Text = "  SYSTEM DASHBOARD"
-SearchLabel.Font = Enum.Font.GothamBold
-SearchLabel.TextSize = 12
-SearchLabel.TextColor3 = Color3.fromRGB(200, 200, 205)
-SearchLabel.BackgroundTransparency = 1
-SearchLabel.TextXAlignment = Enum.TextXAlignment.Left
-SearchLabel.Size = UDim2.new(1, 0, 1, 0)
-SearchLabel.Parent = TopBar
+local Title = Instance.new("TextLabel", TopBar)
+Title.Text = "  VAIN SYSTEM DASHBOARD v4"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 12
+Title.TextColor3 = Color3.fromRGB(200, 200, 205)
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.TextXAlignment = Enum.TextXAlignment.Left
 
---// SIDEBAR
-local Sidebar = Instance.new("ScrollingFrame")
-Sidebar.Name = "Sidebar"
+-- Sidebar
+local Sidebar = Instance.new("ScrollingFrame", MainContainer)
 Sidebar.Size = UDim2.new(0, 170, 1, -40)
 Sidebar.Position = UDim2.new(0, 0, 0, 40)
 Sidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
 Sidebar.BorderSizePixel = 0
-Sidebar.ScrollBarThickness = 6
+Sidebar.ScrollBarThickness = 0
 Sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Sidebar.ClipsDescendants = true
-Sidebar.Parent = Main
 
-local SideLine = Instance.new("Frame")
-SideLine.Size = UDim2.new(0, 1, 1, 0)
-SideLine.Position = UDim2.new(1, -1, 0, 0)
-SideLine.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-SideLine.BorderSizePixel = 0
-SideLine.Parent = Main  -- move it out of the ScrollingFrame
-
-
-local SideLayout = Instance.new("UIListLayout")
+local SideLayout = Instance.new("UIListLayout", Sidebar)
 SideLayout.Padding = UDim.new(0, 10)
-SideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-SideLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-SideLayout.SortOrder = Enum.SortOrder.LayoutOrder
-SideLayout.Parent = Sidebar
+SideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+Instance.new("UIPadding", Sidebar).PaddingTop = UDim.new(0, 20)
 
-local SidePad = Instance.new("UIPadding")
-SidePad.PaddingTop = UDim.new(0, 20)
-SidePad.PaddingLeft = UDim.new(0, 15)
-SidePad.Parent = Sidebar
-
---// CONTENT AREA
-local Content = Instance.new("Frame")
+-- Content Area
+local Content = Instance.new("Frame", MainContainer)
 Content.Size = UDim2.new(1, -170, 1, -40)
 Content.Position = UDim2.new(0, 170, 0, 40)
 Content.BackgroundTransparency = 1
-Content.Parent = Main
 
---// HELPERS
+--// ESP LOGIC
+local function createESP(target, category, color, enabled)
+    local root = target:IsA("Model") and target.PrimaryPart or (target:IsA("BasePart") and target)
+    if not root or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+
+    local finalColor = color
+    if category == "star" then
+        if target.Name:lower():find("green") then
+            finalColor = Color3.fromRGB(80, 255, 80)
+        elseif target.Name:lower():find("yellow") then
+            finalColor = Color3.fromRGB(255, 230, 50)
+        else
+            finalColor = Color3.fromRGB(255, 255, 255)
+        end
+    end
+
+    local data = {}
+
+    -- Attachments for beams
+    data.A0 = Instance.new("Attachment", player.Character.HumanoidRootPart)
+    data.A1 = Instance.new("Attachment", root)
+
+    -- Beam
+    if category ~= "star" then
+        data.Beam = Instance.new("Beam", root)
+        data.Beam.Attachment0 = data.A0
+        data.Beam.Attachment1 = data.A1
+        data.Beam.Color = ColorSequence.new(finalColor)
+        data.Beam.Width0, data.Beam.Width1 = 0.2, 0.2
+        data.Beam.Texture = "rbxassetid://4955566540"
+        data.Beam.FaceCamera = true
+        data.Beam.Enabled = enabled
+    end
+
+    -- Highlight
+    data.Highlight = Instance.new("Highlight", target)
+    data.Highlight.FillColor = finalColor
+    data.Highlight.OutlineColor = Color3.new(1, 1, 1)
+    data.Highlight.FillTransparency = 0.6
+    data.Highlight.Enabled = enabled
+
+    -- Metal part highlight (replace SelectionBox)
+    if category == "metal" then
+        local metalPart = target:FindFirstChildWhichIsA("BasePart") or root
+        local highlight = Instance.new("Highlight", metalPart)
+        highlight.FillColor = finalColor
+        highlight.OutlineColor = Color3.new(1, 1, 1)
+        highlight.FillTransparency = 0.6
+        highlight.Enabled = enabled
+        data.MetalPartHighlight = highlight
+    end
+
+    -- Star beam fix
+    if category == "star" then
+        for _, part in ipairs(target:GetDescendants()) do
+            if part:IsA("BasePart") then
+                local att0 = Instance.new("Attachment", player.Character.HumanoidRootPart)
+                local att1 = Instance.new("Attachment", part)
+                local beam = Instance.new("Beam", part)
+                beam.Attachment0 = att0
+                beam.Attachment1 = att1
+                beam.Color = ColorSequence.new(finalColor)
+                beam.Width0, beam.Width1 = 0.2, 0.2
+                beam.Texture = "rbxassetid://4955566540"
+                beam.FaceCamera = true
+                beam.Enabled = enabled
+                data["Beam_"..part.Name] = beam
+            end
+        end
+    end
+
+    ActiveObjects[category][target] = data
+end
+
+local function toggleCategory(category, state)
+    if ActiveObjects[category] then
+        for target, data in pairs(ActiveObjects[category]) do
+            if data.Beam then data.Beam.Enabled = state end
+            if data.Highlight then data.Highlight.Enabled = state end
+            if data.MetalPartHighlight then data.MetalPartHighlight.Enabled = state end
+            for k, v in pairs(data) do
+                if typeof(v) == "Instance" and v:IsA("Beam") and k:find("Beam_") then
+                    v.Enabled = state
+                end
+            end
+        end
+    end
+end
+
+local function clearAllESP()
+    for cat, list in pairs(ActiveObjects) do
+        for obj, data in pairs(list) do
+            for _, inst in pairs(data) do
+                if typeof(inst) == "Instance" then
+                    inst:Destroy()
+                end
+            end
+        end
+        ActiveObjects[cat] = {}
+    end
+end
+
+--// AIM ASSIST
+local function getNearestPlayer()
+    local closest, minDistance = nil, 35
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+    local lookDir = char.HumanoidRootPart.CFrame.LookVector
+    for _, p in pairs(Players:GetPlayers()) do
+        if p == player or p.Team == player.Team then continue end
+        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
+            local targetPos = p.Character.HumanoidRootPart.Position
+            local dist = (targetPos - char.HumanoidRootPart.Position).Magnitude
+            local dir = (targetPos - char.HumanoidRootPart.Position).Unit
+            if dist < minDistance and math.deg(math.acos(lookDir:Dot(dir))) <= 80 then
+                minDistance = dist
+                closest = p
+            end
+        end
+    end
+    return closest
+end
+
+RunService.Heartbeat:Connect(function()
+    if Settings.AIM_ASSIST.ENABLED then
+        local target = getNearestPlayer()
+        if target then
+            local newCFrame = CFrame.new(camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
+            camera.CFrame = camera.CFrame:Lerp(newCFrame, Settings.AIM_ASSIST.SMOOTHNESS)
+        end
+    end
+end)
+
+--// UI FACTORY
 local Panels = {}
 local Buttons = {}
 
-local function PlayHoverSound()
-    local sound = Instance.new("Sound", ScreenGui)
-    sound.SoundId = "rbxassetid://6895079853"
-    sound.Volume = 0.3
-    sound:Play()
-    game:GetService("Debris"):AddItem(sound, 1)
-end
-
-local function HidePanels()
-	for name, p in pairs(Panels) do 
-        p.Visible = false 
-        local btn = Buttons[name]
-        if btn then
-            TweenService:Create(btn, TweenInfo.new(0.25), {
-                BackgroundColor3 = Color3.fromRGB(22, 22, 26),
-                TextColor3 = Color3.fromRGB(140, 140, 140)
-            }):Play()
-            TweenService:Create(btn.UIStroke, TweenInfo.new(0.25), {Color = Color3.fromRGB(45, 45, 50), Transparency = 0.5}):Play()
-        end
-    end
-end
-
-local function CreateSidebarButton(text, order)
-	local btn = Instance.new("TextButton")
-	btn.Name = text .. "Btn"
-    btn.LayoutOrder = order
-	btn.Size = UDim2.new(0, 140, 0, 38)
-	btn.Text = text
-	btn.Font = Enum.Font.GothamMedium
-	btn.TextSize = 13
-	btn.TextColor3 = Color3.fromRGB(140, 140, 140)
-	btn.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
-	btn.BorderSizePixel = 0
-    btn.AutoButtonColor = false
-	btn.Parent = Sidebar
-	
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+local function CreateCategory(name)
+    local btn = Instance.new("TextButton", Sidebar)
+    btn.Size = UDim2.new(0, 140, 0, 35)
+    btn.Text = name:upper()
+    btn.Font = Enum.Font.GothamMedium
+    btn.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+    btn.TextColor3 = Color3.fromRGB(150, 150, 150)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     local s = Instance.new("UIStroke", btn)
     s.Color = Color3.fromRGB(45, 45, 50)
-    s.Thickness = 1.5
-    s.Transparency = 0.5
 
-    btn.MouseEnter:Connect(function()
-        PlayHoverSound()
-        if not Panels[text].Visible then
-            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}):Play()
-            TweenService:Create(s, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 170, 255), Transparency = 0.2}):Play()
+    local panel = Instance.new("Frame", Content)
+    panel.Size = UDim2.new(1, -40, 1, -40)
+    panel.Position = UDim2.new(0, 20, 0, 20)
+    panel.Visible = false
+    panel.BackgroundTransparency = 1
+    local layout = Instance.new("UIListLayout", panel)
+    layout.Padding = UDim.new(0, 8)
+
+    btn.MouseButton1Click:Connect(function()
+        for _, p in pairs(Panels) do
+            p.Visible = false
         end
-    end)
-    
-    btn.MouseLeave:Connect(function()
-        if not Panels[text].Visible then
-            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(22, 22, 26)}):Play()
-            TweenService:Create(s, TweenInfo.new(0.2), {Color = Color3.fromRGB(45, 45, 50), Transparency = 0.5}):Play()
+        for _, b in pairs(Buttons) do
+            b.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+            if b:FindFirstChild("UIStroke") then b.UIStroke.Color = Color3.fromRGB(45,45,50) end
         end
+        panel.Visible = true
+        btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+        if s then s.Color = Color3.fromRGB(255,255,255) end
     end)
 
-    Buttons[text] = btn
-	return btn
+    Panels[name] = panel
+    Buttons[name] = btn
+    return panel
 end
 
-local function CreatePanel(name)
-	local panel = Instance.new("Frame")
-	panel.Name = name .. "Panel"
-	panel.Size = UDim2.new(1, -40, 1, -40)
-	panel.Position = UDim2.new(0, 20, 0, 20)
-	panel.BackgroundTransparency = 1
-	panel.Visible = false
-	panel.Parent = Content
+local function CreateToggle(parent, text, default, callback)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1, 0, 0, 40)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
 
-	local title = Instance.new("TextLabel")
-	title.Text = name:upper()
-	title.Font = Enum.Font.GothamBold
-	title.TextSize = 18
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
-	title.BackgroundTransparency = 1
-	title.Size = UDim2.new(1, 0, 0, 30)
-    title.TextXAlignment = Enum.TextXAlignment.Left
-	title.Parent = panel
+    local label = Instance.new("TextLabel", frame)
+    label.Text = "  "..text
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(200,200,205)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Font = Enum.Font.GothamMedium
 
-	Panels[name] = panel
-	return panel
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0,35,0,18)
+    btn.Position = UDim2.new(1,-45,0.5,-9)
+    btn.BackgroundColor3 = default and Color3.fromRGB(0,170,255) or Color3.fromRGB(45,45,50)
+    btn.Text = ""
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1,0)
+
+    local dot = Instance.new("Frame", btn)
+    dot.Size = UDim2.new(0,14,0,14)
+    dot.Position = default and UDim2.new(1,-16,0.5,-7) or UDim2.new(0,2,0.5,-7)
+    dot.BackgroundColor3 = Color3.new(1,1,1)
+    Instance.new("UICorner", dot).CornerRadius = UDim.new(1,0)
+
+    btn.MouseButton1Click:Connect(function()
+        default = not default
+        TweenService:Create(btn,TweenInfo.new(0.3,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+            {BackgroundColor3 = default and Color3.fromRGB(0,170,255) or Color3.fromRGB(45,45,50)}):Play()
+        dot:TweenPosition(default and UDim2.new(1,-16,0.5,-7) or UDim2.new(0,2,0.5,-7),"Out","Quad",0.25,true)
+        TweenService:Create(dot,TweenInfo.new(0.25),{BackgroundColor3=default and Color3.fromRGB(255,255,255) or Color3.fromRGB(200,200,200)}):Play()
+        callback(default)
+    end)
 end
 
---// INITIALIZE SIDEBAR
-local categories = { "Combat", "Visuals", "Interface", "Misc" }
-for i, name in ipairs(categories) do
-	local panel = CreatePanel(name)
-	local btn = CreateSidebarButton(name, i)
-    
-	btn.MouseButton1Click:Connect(function()
-		HidePanels()
-		panel.Visible = true
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 170, 255), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
-        TweenService:Create(btn.UIStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(255, 255, 255), Transparency = 0}):Play()
-	end)
+--// INITIALIZATION
+local Combat = CreateCategory("Combat")
+local Visuals = CreateCategory("Visuals")
+
+CreateToggle(Visuals,"Metal ESP",false,function(v)
+    Settings.METAL_ESP.ENABLED = v
+    toggleCategory("metal",v)
+end)
+
+CreateToggle(Visuals,"Star ESP",false,function(v)
+    Settings.STAR_ESP.ENABLED = v
+    toggleCategory("star",v)
+end)
+
+CreateToggle(Visuals,"Tree Orb ESP",false,function(v)
+    Settings.TREE_ESP.ENABLED = v
+    toggleCategory("tree",v)
+end)
+
+CreateToggle(Combat,"Aim Assist (Q)",false,function(v)
+    Settings.AIM_ASSIST.ENABLED = v
+end)
+
+--// DATA REFRESH
+local function RefreshESP()
+    for _, obj in ipairs(CollectionService:GetTagged("hidden-metal")) do
+        createESP(obj,"metal",Settings.METAL_ESP.COLOR,Settings.METAL_ESP.ENABLED)
+    end
+    for _, obj in ipairs(CollectionService:GetTagged("tree-orb")) do
+        createESP(obj,"tree",Settings.TREE_ESP.COLOR,Settings.TREE_ESP.ENABLED)
+    end
 end
 
---// METAL ESP BEAM TOGGLE
-local BeamToggleFrame = Instance.new("Frame")
-BeamToggleFrame.Size = UDim2.new(1, 0, 0, 50)
-BeamToggleFrame.Position = UDim2.new(0, 0, 0, 110) -- below previous toggle (50 + 50 padding)
-BeamToggleFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
-BeamToggleFrame.BorderSizePixel = 0
-BeamToggleFrame.Parent = Panels.Visuals
+--// EVENTS
+CollectionService:GetInstanceAddedSignal("hidden-metal"):Connect(function(o)
+    createESP(o,"metal",Settings.METAL_ESP.COLOR,Settings.METAL_ESP.ENABLED)
+end)
 
-Instance.new("UICorner", BeamToggleFrame).CornerRadius = UDim.new(0, 8)
-local tsBeam = Instance.new("UIStroke", BeamToggleFrame)
-tsBeam.Color = Color3.fromRGB(40, 40, 45)
+CollectionService:GetInstanceAddedSignal("tree-orb"):Connect(function(o)
+    createESP(o,"tree",Settings.TREE_ESP.COLOR,Settings.TREE_ESP.ENABLED)
+end)
 
-local BeamToggleText = Instance.new("TextLabel")
-BeamToggleText.Text = "Metal ESP Beam"
-BeamToggleText.Font = Enum.Font.GothamMedium
-BeamToggleText.TextSize = 13
-BeamToggleText.TextColor3 = Color3.fromRGB(200, 200, 200)
-BeamToggleText.BackgroundTransparency = 1
-BeamToggleText.Position = UDim2.new(0, 15, 0, 0)
-BeamToggleText.Size = UDim2.new(0.6, 0, 1, 0)
-BeamToggleText.TextXAlignment = Enum.TextXAlignment.Left
-BeamToggleText.Parent = BeamToggleFrame
-
-local BeamToggleButton = Instance.new("TextButton")
-BeamToggleButton.Size = UDim2.new(0, 40, 0, 20)
-BeamToggleButton.Position = UDim2.new(1, -55, 0.5, -10)
-BeamToggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-BeamToggleButton.Text = ""
-BeamToggleButton.Parent = BeamToggleFrame
-Instance.new("UICorner", BeamToggleButton).CornerRadius = UDim.new(1, 0)
-
-local BeamCircle = Instance.new("Frame", BeamToggleButton)
-BeamCircle.Size = UDim2.new(0, 16, 0, 16)
-BeamCircle.Position = UDim2.new(0, 2, 0.5, -8)
-BeamCircle.BackgroundColor3 = Color3.fromRGB(255,255,255)
-Instance.new("UICorner", BeamCircle).CornerRadius = UDim.new(1,0)
-
--- ui.lua (Inside BeamToggleButton.MouseButton1Click)
-local beamEnabled = false
-BeamToggleButton.MouseButton1Click:Connect(function()
-    beamEnabled = not beamEnabled
-    
-    -- Animation
-    TweenService:Create(BeamToggleButton, TweenInfo.new(0.2), {
-        BackgroundColor3 = beamEnabled and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(40, 40, 45)
-    }):Play()
-    BeamCircle:TweenPosition(beamEnabled and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8), "Out", "Quad", 0.15, true)
-    
-    -- Logic Trigger
-    if beamEnabled then
-        -- Arguments: Tag Name, Category Label, Color
-        _G.App.Visuals.EnableCategory("hidden-metal", "metal-loot", Color3.fromRGB(0, 170, 255))
-    else
-        _G.App.Visuals.DisableCategory("metal-loot")
+workspace.ChildAdded:Connect(function(child)
+    if child:IsA("Model") and (child.Name:find("Star") or child.Name:find("star")) then
+        task.wait(0.2)
+        createESP(child,"star",Color3.new(1,1,1),Settings.STAR_ESP.ENABLED)
     end
 end)
 
--- Force Visuals active on start
-Panels.Visuals.Visible = true
-Buttons.Visuals.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-Buttons.Visuals.TextColor3 = Color3.fromRGB(255, 255, 255)
-Buttons.Visuals.UIStroke.Color = Color3.fromRGB(255, 255, 255)
-Buttons.Visuals.UIStroke.Transparency = 0
+local function activatePanel(name)
+    for _, p in pairs(Panels) do
+        p.Visible = false
+    end
+    for _, b in pairs(Buttons) do
+        b.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+        if b:FindFirstChild("UIStroke") then b.UIStroke.Color = Color3.fromRGB(45,45,50) end
+    end
+    Panels[name].Visible = true
+    Buttons[name].BackgroundColor3 = Color3.fromRGB(0,120,255)
+    if Buttons[name]:FindFirstChild("UIStroke") then
+        Buttons[name].UIStroke.Color = Color3.fromRGB(255,255,255)
+    end
+end
 
---// INPUT TOGGLE
-local Visible = true
 UIS.InputBegan:Connect(function(input, gp)
-	if gp then return end
-    if input.KeyCode == Enum.KeyCode.RightShift or input.KeyCode == Enum.KeyCode.LeftAlt or input.KeyCode == Enum.KeyCode.RightAlt then
-		Visible = not Visible
-        TweenService:Create(Main, TweenInfo.new(0.2), {GroupTransparency = Visible and 0 or 1}):Play()
-        if Visible then Main.Visible = true else task.delay(0.2, function() if not Visible then Main.Visible = false end end) end
-	end
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        Settings.VISIBLE = not Settings.VISIBLE
+        blur.Enabled = Settings.VISIBLE
+        MainContainer.Visible = Settings.VISIBLE
+    elseif input.KeyCode == Enum.KeyCode.Q then
+        Settings.AIM_ASSIST.ENABLED = not Settings.AIM_ASSIST.ENABLED
+    end
 end)
+
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    clearAllESP()
+    RefreshESP()
+end)
+
+-- Startup
+RefreshESP()
+Buttons["Visuals"].BackgroundColor3 = Color3.fromRGB(0,120,255)
+Panels["Visuals"].Visible = true

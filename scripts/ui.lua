@@ -462,7 +462,7 @@ local function getNearestPlayer()
 			local humanoid = p.Character:FindFirstChildOfClass("Humanoid")
 			local dist = (hrp.Position - camPos).Magnitude
 			local angle = math.deg(math.acos(lookDir:Dot((hrp.Position-camPos).Unit)))
-			if humanoid and humanoid.Health>0 and dist<=Settings.AIM_ASSIST.MAX_DISTANCE and angle<=Settings.AIM_ASSIST.MAX_ANGLE then
+			if humanoid and humanoid.Health>0 and dist<=Settings.AIM_ASSIST.MAX_DISTANCE and dist>= 5 and angle<=Settings.AIM_ASSIST.MAX_ANGLE then
 				if dist<minDist then minDist = dist closest = p end
 			end
 		end

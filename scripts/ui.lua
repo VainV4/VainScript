@@ -191,49 +191,67 @@ end
 
 local function CreateSlider(parent, text, min, max, default, callback)
 	local frame = Instance.new("Frame", parent)
-	frame.Size = UDim2.new(1,0,0,40)
-	frame.BackgroundColor3 = Color3.fromRGB(20,20,24)
-	Instance.new("UICorner", frame).CornerRadius = UDim.new(0,6)
+	frame.Size = UDim2.new(1, 0, 0, 45) -- Increased height slightly for better spacing
+	frame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
 
 	local label = Instance.new("TextLabel", frame)
-	label.Text = text.." "..tostring(default)
-	label.Size = UDim2.new(1,0,1,0)
+	label.Name = "SliderLabel"
+	label.Text = text .. " " .. tostring(default)
+	-- Positioned at the top half
+	label.Size = UDim2.new(1, -20, 0, 20)
+	label.Position = UDim2.new(0, 10, 0, 5)
 	label.BackgroundTransparency = 1
-	label.TextColor3 = Color3.fromRGB(200,200,205)
+	label.TextColor3 = Color3.fromRGB(200, 200, 205)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Font = Enum.Font.GothamMedium
-	label.TextSize = 16
-	label.TextScaled = true
+	label.TextSize = 14
+	label.TextWrapped = true -- Ensures text stays within bounds
 
 	local sliderFrame = Instance.new("Frame", frame)
-	sliderFrame.Size = UDim2.new(1,-20,0,10)
-	sliderFrame.Position = UDim2.new(0,10,0,25)
-	sliderFrame.BackgroundColor3 = Color3.fromRGB(45,45,50)
-	Instance.new("UICorner", sliderFrame).CornerRadius = UDim.new(0,5)
+	-- Positioned at the bottom half so it never overlaps the text
+	sliderFrame.Size = UDim2.new(1, -20, 0, 6)
+	sliderFrame.Position = UDim2.new(0, 10, 0, 30)
+	sliderFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+	sliderFrame.BorderSizePixel = 0
+	Instance.new("UICorner", sliderFrame).CornerRadius = UDim.new(0, 5)
 
 	local bar = Instance.new("Frame", sliderFrame)
-	bar.Size = UDim2.new((default-min)/(max-min),0,1,0)
-	bar.BackgroundColor3 = Color3.fromRGB(0,170,255)
-	Instance.new("UICorner", bar).CornerRadius = UDim.new(0,5)
+	bar.Size = UDim2.new(math.clamp((default - min) / (max - min), 0, 1), 0, 1, 0)
+	bar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+	bar.BorderSizePixel = 0
+	Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 5)
+
+	-- Logic for sliding
+	local function move(input)
+		local relative = math.clamp((input.Position.X - sliderFrame.AbsolutePosition.X) / sliderFrame.AbsoluteSize.X, 0, 1)
+		local value = min + (max - min) * relative
+
+		-- Rounding logic based on whether it's a small float or large int
+		local displayValue = value >= 1 and math.floor(value) or math.floor(value * 100) / 100
+
+		bar.Size = UDim2.new(relative, 0, 1, 0)
+		label.Text = text .. " " .. displayValue
+		callback(value)
+	end
 
 	local dragging = false
 	sliderFrame.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = true
+			move(input)
 		end
 	end)
-	sliderFrame.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
-		end
-	end)
+
 	UIS.InputChanged:Connect(function(input)
 		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-			local relative = math.clamp((input.Position.X - sliderFrame.AbsolutePosition.X)/sliderFrame.AbsoluteSize.X,0,1)
-			local value = min + (max-min)*relative
-			bar.Size = UDim2.new(relative,0,1,0)
-			label.Text = text.." "..math.floor(value*100)/100
-			callback(value)
+			move(input)
+		end
+	end)
+
+	UIS.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = false
 		end
 	end)
 end
@@ -306,8 +324,8 @@ local function createESP(target, category, color, enabled)
 		data.Highlight.Enabled = enabled
 	end
 
-	-- Beam (for star / normal objects)
-	if category == "star" then
+	-- Updated Beam Logic (Now includes Metal)
+	if category == "star" or category == "metal" then
 		if not data.Beam then
 			local a0 = Instance.new("Attachment", player.Character.HumanoidRootPart)
 			local a1 = Instance.new("Attachment", root)
@@ -325,6 +343,8 @@ local function createESP(target, category, color, enabled)
 			data.A1 = a1
 		else
 			data.Beam.Enabled = enabled
+			-- Update color in case it was changed in settings
+			data.Beam.Color = ColorSequence.new(finalColor)
 		end
 	end
 

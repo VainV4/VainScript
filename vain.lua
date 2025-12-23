@@ -1,7 +1,7 @@
 -- bootstrap.lua
 
 _G.App = {
-	Visuals = {}
+	_G.App.Visuals = _G.App.Visuals or {}
 }
 
 local BASE = "https://raw.githubusercontent.com/VainV4/VainScript/main/scripts/"

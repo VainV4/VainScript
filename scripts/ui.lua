@@ -34,7 +34,7 @@ blur.Size = 20
 blur.Enabled = true
 
 local MainContainer = Instance.new("Frame", ScreenGui)
-MainContainer.Size = UDim2.new(0.5, 0, 0.55, 0)
+MainContainer.Size = UDim2.new(0.7, 0, 0.7, 0)
 MainContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
 MainContainer.AnchorPoint = Vector2.new(0.5, 0.5)
 MainContainer.BackgroundColor3 = Settings.UI_COLOR
@@ -55,7 +55,7 @@ Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 10)
 local Title = Instance.new("TextLabel", TopBar)
 Title.Text = " VAIN SYSTEM DASHBOARD v4"
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 12
+Title.TextSize = 18
 Title.TextColor3 = Color3.fromRGB(200, 200, 205)
 Title.BackgroundTransparency = 1
 Title.Size = UDim2.new(1, 0, 1, 0)
@@ -117,8 +117,10 @@ local function CreateCategory(name)
 	local btn = Instance.new("TextButton", Sidebar)
 	btn.Size = UDim2.new(0, 140, 0, 35)
 	btn.Text = name:upper()
+	btn.TextSize = 16
 	btn.Font = Enum.Font.GothamMedium
 	btn.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+	btn.TextScaled = true
 	btn.TextColor3 = Color3.fromRGB(150, 150, 150)
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
 	local s = Instance.new("UIStroke", btn)
@@ -163,6 +165,7 @@ local function CreateToggle(parent, text, default, callback)
 	label.TextColor3 = Color3.fromRGB(200,200,205)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Font = Enum.Font.GothamMedium
+	label.TextSize = 14
 
 	local btn = Instance.new("TextButton", frame)
 	btn.Size = UDim2.new(0,35,0,18)
@@ -199,6 +202,8 @@ local function CreateSlider(parent, text, min, max, default, callback)
 	label.TextColor3 = Color3.fromRGB(200,200,205)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Font = Enum.Font.GothamMedium
+	label.TextSize = 16
+	label.TextScaled = true
 
 	local sliderFrame = Instance.new("Frame", frame)
 	sliderFrame.Size = UDim2.new(1,-20,0,10)
@@ -246,6 +251,8 @@ local function CreateColorPicker(parent, text, defaultColor, callback)
 	label.TextColor3 = Color3.fromRGB(200,200,205)
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Font = Enum.Font.GothamMedium
+	label.TextSize = 16
+	label.TextScaled = true
 
 	local btn = Instance.new("TextButton", frame)
 	btn.Size = UDim2.new(0,30,0,30)
@@ -477,6 +484,11 @@ local function RefreshESP()
 	end
 	for _, obj in ipairs(CollectionService:GetTagged("tree-orb")) do
 		createESP(obj,"tree",Settings.TREE_ESP.COLOR,Settings.TREE_ESP.ENABLED)
+	end
+	for _, child in ipairs(workspace:GetChildren()) do
+		if child:IsA("Model") and (child.Name:find("Star") or child.Name:find("star")) then
+			createESP(child,"star",Settings.STAR_ESP.COLOR,Settings.STAR_ESP.ENABLED)
+		end
 	end
 end
 

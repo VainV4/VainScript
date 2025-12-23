@@ -385,7 +385,7 @@ end
 
 --// Toggle Category
 function toggleCategory(category, state)
-	local tagName = category == "metal" and "hidden-metal" or category == "tree" and "tree-orb" or category == "bee" and "bee" or nil
+	local tagName = category == "metal" and "hidden-metal" or category == "tree" and "treeOrb" or category == "bee" and "bee" or nil
 
 	-- Scan existing objects if enabling
 	if state and tagName then
@@ -510,7 +510,7 @@ local function RefreshESP()
 	for _, obj in ipairs(CollectionService:GetTagged("hidden-metal")) do
 		createESP(obj,"metal",Settings.METAL_ESP.COLOR,Settings.METAL_ESP.ENABLED)
 	end
-	for _, obj in ipairs(CollectionService:GetTagged("tree-orb")) do
+	for _, obj in ipairs(CollectionService:GetTagged("treeOrb")) do
 		createESP(obj,"tree",Settings.TREE_ESP.COLOR,Settings.TREE_ESP.ENABLED)
 	end
 	for _, obj in ipairs(CollectionService:GetTagged("bee")) do
@@ -530,7 +530,7 @@ CollectionService:GetInstanceAddedSignal("bee"):Connect(function(o)
 	if o.Name == "TamedBee" then return end
 	createESP(o,"bee",Settings.BEE_ESP.COLOR,Settings.BEE_ESP.ENABLED)
 end)
-CollectionService:GetInstanceAddedSignal("tree-orb"):Connect(function(o)
+CollectionService:GetInstanceAddedSignal("treeOrb"):Connect(function(o)
 	createESP(o,"tree",Settings.TREE_ESP.COLOR,Settings.TREE_ESP.ENABLED)
 end)
 workspace.ChildAdded:Connect(function(child)

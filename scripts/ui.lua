@@ -1,3 +1,8 @@
+-- Initialize _G.App.Visuals
+_G.App = _G.App or {}
+_G.App.Visuals = _G.App.Visuals or {}
+
+
 --// SERVICES
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")

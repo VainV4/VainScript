@@ -9,6 +9,7 @@ local Lighting = game:GetService("Lighting")
 --// SETTINGS & STATE
 local Settings = {
 	METAL_ESP = { ENABLED = false, COLOR = Color3.fromRGB(0, 170, 255) },
+	BEE_ESP = { ENABLED = false, COLOR = Color3.fromRGB(255, 214, 6) },
 	STAR_ESP = { ENABLED = false, COLOR = Color3.fromRGB(255, 255, 255) },
 	TREE_ESP = { ENABLED = false, COLOR = Color3.fromRGB(255, 100, 0) },
 	AIM_ASSIST = { ENABLED = false, SMOOTHNESS = 0.15, MAX_DISTANCE = 94, MAX_ANGLE = 90 },
@@ -18,7 +19,7 @@ local Settings = {
 	VISIBLE = true
 }
 
-local ActiveObjects = { ["metal"] = {}, ["star"] = {}, ["tree"] = {} }
+local ActiveObjects = { ["metal"] = {}, ["star"] = {}, ["tree"] = {}, ["bee"] = {}}
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 
@@ -299,7 +300,8 @@ local toggleCategory
 --// ESP & Highlight
 local function createESP(target, category, color, enabled)
 	if not target then return end
-	local root = target:IsA("Model") and (target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart")) or (target:IsA("BasePart") and target)
+	local root = target:IsA("Model") and (target.PrimaryPart or target:FindFirstChildWhichIsA("BasePart") or target:FindFirstChildWhichIsA("MeshPart")) or (target:IsA("BasePart") and target)
+	if not root then return end
 	if not root or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
 
 	local finalColor = color
@@ -325,7 +327,7 @@ local function createESP(target, category, color, enabled)
 	end
 
 	-- Updated Beam Logic (Now includes Metal)
-	if category == "star" or category == "metal" then
+	if category == "star" or category == "metal" or category == "tree" or category == "bee" then
 		if not data.Beam then
 			local a0 = Instance.new("Attachment", player.Character.HumanoidRootPart)
 			local a1 = Instance.new("Attachment", root)
@@ -349,7 +351,7 @@ local function createESP(target, category, color, enabled)
 	end
 
 	-- Metal loot extra highlight
-	if category == "metal" then
+	if category == "metal" or category == "tree" or category == "bee" then
 		-- Create a new part
 		local newPart = Instance.new("Part")
 		newPart.Size = Vector3.new(2, 2, 2) -- Adjust size as needed
@@ -383,7 +385,7 @@ end
 
 --// Toggle Category
 function toggleCategory(category, state)
-	local tagName = category == "metal" and "hidden-metal" or category == "tree" and "tree-orb" or nil
+	local tagName = category == "metal" and "hidden-metal" or category == "tree" and "tree-orb" or category == "bee" and "bee" or nil
 
 	-- Scan existing objects if enabling
 	if state and tagName then
@@ -412,6 +414,7 @@ end
 --// CREATE UI CONTROLS
 -- Visual Toggles
 CreateToggle(Visuals,"Metal ESP",false,function(v) Settings.METAL_ESP.ENABLED = v toggleCategory("metal",v) end)
+CreateToggle(Visuals,"Bee ESP",false,function(v) Settings.BEE_ESP.ENABLED = v toggleCategory("bee",v) end)
 CreateToggle(Visuals,"Star ESP",false,function(v) Settings.STAR_ESP.ENABLED = v toggleCategory("star",v) end)
 CreateToggle(Visuals,"Tree Orb ESP",false,function(v) Settings.TREE_ESP.ENABLED = v toggleCategory("tree",v) end)
 CreateToggle(Combat,"Aim Assist (Q)",false,function(v) Settings.AIM_ASSIST.ENABLED = v end)
@@ -438,6 +441,11 @@ CreateColorPicker(SettingsPanel,"Tree ESP Color",Settings.TREE_ESP.COLOR,functio
 	Settings.TREE_ESP.COLOR = c
 	toggleCategory("tree",false)
 	toggleCategory("tree",Settings.TREE_ESP.ENABLED)
+end)
+CreateColorPicker(SettingsPanel,"Bee ESP Color",Settings.BEE_ESP.COLOR,function(c)
+	Settings.BEE_ESP.COLOR = c
+	toggleCategory("bee",false)
+	toggleCategory("bee",Settings.BEE_ESP.ENABLED)
 end)
 
 --// AIM ASSIST
@@ -505,6 +513,9 @@ local function RefreshESP()
 	for _, obj in ipairs(CollectionService:GetTagged("tree-orb")) do
 		createESP(obj,"tree",Settings.TREE_ESP.COLOR,Settings.TREE_ESP.ENABLED)
 	end
+	for _, obj in ipairs(CollectionService:GetTagged("bee")) do
+		createESP(obj,"bee",Settings.BEE_ESP.COLOR,Settings.BEE_ESP.ENABLED)
+	end
 	for _, child in ipairs(workspace:GetChildren()) do
 		if child:IsA("Model") and (child.Name:find("Star") or child.Name:find("star")) then
 			createESP(child,"star",Settings.STAR_ESP.COLOR,Settings.STAR_ESP.ENABLED)
@@ -514,6 +525,9 @@ end
 
 CollectionService:GetInstanceAddedSignal("hidden-metal"):Connect(function(o)
 	createESP(o,"metal",Settings.METAL_ESP.COLOR,Settings.METAL_ESP.ENABLED)
+end)
+CollectionService:GetInstanceAddedSignal("bee"):Connect(function(o)
+	createESP(o,"bee",Settings.BEE_ESP.COLOR,Settings.BEE_ESP.ENABLED)
 end)
 CollectionService:GetInstanceAddedSignal("tree-orb"):Connect(function(o)
 	createESP(o,"tree",Settings.TREE_ESP.COLOR,Settings.TREE_ESP.ENABLED)

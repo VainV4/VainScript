@@ -1,5 +1,6 @@
--- UI.lua
-local UI = {}
+local UI = _G.Vain.UI
+local Config = _G.Vain.Config
+local Visuals = _G.Vain.Visuals
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -28,5 +29,14 @@ end
 function UI.CreateColorPicker(parent, text, defaultColor, callback)
 	-- dein CreateColorPicker Code
 end
+
+CreateToggle(VisualsPanel, "Metal ESP", false, function(v)
+	Config.Settings.METAL_ESP.ENABLED = v
+	Visuals.Toggle("metal", v)
+end)
+
+CreateToggle(CombatPanel, "Aim Assist (Q)", false, function(v)
+	Config.Settings.AIM_ASSIST.ENABLED = v
+end)
 
 return UI

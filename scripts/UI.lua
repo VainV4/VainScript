@@ -224,10 +224,9 @@ local VisualsPanel = CreateCategory("Visuals")
 local SettingsPanel = CreateCategory("Settings")
 
 --// POPULATE COMBAT
-CreateToggle(CombatPanel,"Aim Assist (Q)",Settings.AIM_ASSIST.ENABLED,function(v) Settings.AIM_ASSIST.ENABLED=v end)
-CreateSlider(CombatPanel,"Smoothness",0,1,Settings.AIM_ASSIST.SMOOTHNESS,function(v) Settings.AIM_ASSIST.SMOOTHNESS=v end)
-CreateSlider(CombatPanel,"Max Distance",10,500,Settings.AIM_ASSIST.MAX_DISTANCE,function(v) Settings.AIM_ASSIST.MAX_DISTANCE=v end)
-CreateSlider(CombatPanel,"Max Angle",10,180,Settings.AIM_ASSIST.MAX_ANGLE,function(v) Settings.AIM_ASSIST.MAX_ANGLE=v end)
+CreateToggle(CombatPanel,"Aim Assist (Q)",Settings.AIM_ASSIST.ENABLED,function(v) 
+    Settings.AIM_ASSIST.ENABLED = v 
+end)
 
 --// POPULATE VISUALS
 CreateToggle(VisualsPanel,"Metal ESP",Settings.METAL_ESP.ENABLED,function(v) Settings.METAL_ESP.ENABLED=v end)
@@ -252,9 +251,11 @@ end)
 CreateColorPicker(SettingsPanel,"Bee ESP Color",Settings.BEE_ESP.COLOR,function(c)
     Settings.BEE_ESP.COLOR=c
 end)
+-- Aim Assist sliders only in Settings
 CreateSlider(SettingsPanel,"Aim Smoothness",0,1,Settings.AIM_ASSIST.SMOOTHNESS,function(v) Settings.AIM_ASSIST.SMOOTHNESS=v end)
 CreateSlider(SettingsPanel,"Aim Max Distance",10,500,Settings.AIM_ASSIST.MAX_DISTANCE,function(v) Settings.AIM_ASSIST.MAX_DISTANCE=v end)
 CreateSlider(SettingsPanel,"Aim Max Angle",10,180,Settings.AIM_ASSIST.MAX_ANGLE,function(v) Settings.AIM_ASSIST.MAX_ANGLE=v end)
+
 
 -- DEFAULT TAB
 Panels["Combat"].Visible = true

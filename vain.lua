@@ -37,7 +37,7 @@ end
 end
 
 -- ⚠️ LADE-REIHENFOLGE IST WICHTIG
-Load("config.lua")
-Load("visuals.lua")
-Load("combat.lua")
-Load("ui.lua") -- UI zuletzt (braucht alles)
+Load("Config.lua")
+Load("Visuals.lua")
+Load("Combat.lua")
+Load("UI.lua") -- UI zuletzt (braucht alles)

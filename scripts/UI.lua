@@ -235,7 +235,13 @@ CreateToggle(CombatPanel,"Aim Assist (Q)",Settings.AIM_ASSIST.ENABLED,function(v
 end)
 
 --// POPULATE VISUALS
-CreateToggle(VisualsPanel,"Metal ESP",Settings.METAL_ESP.ENABLED,function(v) Settings.METAL_ESP.ENABLED=v end)
+CreateToggle(VisualsPanel,"Metal ESP",Settings.METAL_ESP.ENABLED,function(v)
+	Settings.METAL_ESP.ENABLED = v
+	if _G.Vain and _G.Vain.Visuals then
+		_G.Vain.Visuals.Toggle("metal", v)
+	end
+end)
+
 CreateToggle(VisualsPanel,"Star ESP",Settings.STAR_ESP.ENABLED,function(v) Settings.STAR_ESP.ENABLED=v end)
 CreateToggle(VisualsPanel,"Tree ESP",Settings.TREE_ESP.ENABLED,function(v) Settings.TREE_ESP.ENABLED=v end)
 CreateToggle(VisualsPanel,"Bee ESP",Settings.BEE_ESP.ENABLED,function(v) Settings.BEE_ESP.ENABLED=v end)

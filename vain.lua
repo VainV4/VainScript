@@ -1,13 +1,16 @@
--- VainScript LocalScript Loader (Client-Safe, Dynamic)
+-- =========================
+-- VainScript LocalScript Loader
+-- =========================
+
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
--- -------------------------
+-- =========================
 -- Persistence (Executor Only)
--- -------------------------
+-- =========================
 local function SaveSettings(name, data)
     if writefile then
         writefile(name .. ".json", HttpService:JSONEncode(data))
@@ -21,17 +24,13 @@ local function LoadSettings(name)
     return {}
 end
 
--- -------------------------
+-- =========================
 -- Categories & Modules
--- -------------------------
+-- =========================
 local Categories = {}
 
--- -------------------------
--- UI Toggle
--- -------------------------
+-- UI visibility toggle
 local uiVisible = true
-
--- We'll set MainFrame later when creating UI
 local MainFrame
 
 UserInputService.InputBegan:Connect(function(input)
@@ -43,14 +42,14 @@ UserInputService.InputBegan:Connect(function(input)
     end
 end)
 
--- -------------------------
+-- =========================
 -- Dynamic Module Loader
--- -------------------------
+-- =========================
 local function LoadModules()
-    local scriptFolder = "scripts"  -- relative folder
+    local scriptFolder = "scripts"
     local function LoadFolder(path)
         local success, files = pcall(function()
-            return listfiles(path)  -- executor-only
+            return listfiles(path) -- executor-only
         end)
         if not success then return end
 
@@ -63,7 +62,6 @@ local function LoadModules()
                     local category = file:match("scripts/(.-)/") or "Misc"
                     local moduleName = file:match("scripts/.-/([%w_]+)%.lua$")
 
-                    -- Load settings
                     local defaultSettings = moduleFunc.DefaultSettings or {Enabled = true}
                     local savedSettings = LoadSettings(category .. "_" .. moduleName)
                     local settings = {}
@@ -71,7 +69,6 @@ local function LoadModules()
                         settings[k] = savedSettings[k] ~= nil and savedSettings[k] or v
                     end
 
-                    -- Register category and module
                     Categories[category] = Categories[category] or {}
                     Categories[category][moduleName] = {
                         name = moduleName,
@@ -79,22 +76,21 @@ local function LoadModules()
                         init = moduleFunc
                     }
 
-                    -- Run module safely
                     coroutine.wrap(function()
                         moduleFunc(settings)
                     end)()
                 end
             elseif file:sub(-1) == "/" then
-                LoadFolder(file)  -- recursive
+                LoadFolder(file)
             end
         end
     end
     LoadFolder(scriptFolder)
 end
 
--- -------------------------
+-- =========================
 -- GUI Creation
--- -------------------------
+-- =========================
 local function CreateUI()
     local CoreGui = game:GetService("CoreGui")
     local ScreenGui = Instance.new("ScreenGui")
@@ -103,73 +99,154 @@ local function CreateUI()
     ScreenGui.Parent = CoreGui
 
     MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 400, 0, 300)
-    MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    MainFrame.Size = UDim2.new(0, 600, 0, 400)
+    MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     MainFrame.BorderSizePixel = 0
-    MainFrame.Visible = uiVisible
     MainFrame.Parent = ScreenGui
+    MainFrame.Visible = uiVisible
+    MainFrame.ClipsDescendants = true
+    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    MainFrame.Position = UDim2.new(0.5,0,0.5,0)
 
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 0, 30)
-    Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    Title.Text = "VainScript"
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.Font = Enum.Font.SourceSansBold
-    Title.TextSize = 20
-    Title.Parent = MainFrame
+    -- Left Panel: Categories
+    local LeftPanel = Instance.new("Frame")
+    LeftPanel.Size = UDim2.new(0, 150, 1, 0)
+    LeftPanel.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    LeftPanel.BorderSizePixel = 0
+    LeftPanel.Parent = MainFrame
 
-    local Scroller = Instance.new("ScrollingFrame")
-    Scroller.Size = UDim2.new(1, -10, 1, -40)
-    Scroller.Position = UDim2.new(0, 5, 0, 35)
-    Scroller.CanvasSize = UDim2.new(0, 0, 0, 0)
-    Scroller.ScrollBarThickness = 6
-    Scroller.BackgroundTransparency = 1
-    Scroller.Parent = MainFrame
+    local LeftLayout = Instance.new("UIListLayout")
+    LeftLayout.Parent = LeftPanel
+    LeftLayout.Padding = UDim.new(0, 5)
+    LeftLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    local UIListLayout = Instance.new("UIListLayout")
-    UIListLayout.Padding = UDim.new(0, 5)
-    UIListLayout.Parent = Scroller
+    -- Right Panel: Modules
+    local RightPanel = Instance.new("Frame")
+    RightPanel.Size = UDim2.new(1, -160, 1, 0)
+    RightPanel.Position = UDim2.new(0, 160, 0, 0)
+    RightPanel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    RightPanel.BorderSizePixel = 0
+    RightPanel.Parent = MainFrame
 
-    -- Module toggle button
-    local function CreateToggle(module, categoryName)
-        local Button = Instance.new("TextButton")
-        Button.Size = UDim2.new(1, 0, 0, 25)
-        Button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-        Button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        Button.Font = Enum.Font.SourceSans
-        Button.TextSize = 18
-        Button.Text = module.name .. " [" .. (module.settings.Enabled and "ON" or "OFF") .. "]"
-        Button.Parent = Scroller
+    local ModuleScroller = Instance.new("ScrollingFrame")
+    ModuleScroller.Size = UDim2.new(1, -10, 1, -10)
+    ModuleScroller.Position = UDim2.new(0, 5, 0, 5)
+    ModuleScroller.BackgroundTransparency = 1
+    ModuleScroller.BorderSizePixel = 0
+    ModuleScroller.ScrollBarThickness = 6
+    ModuleScroller.Parent = RightPanel
 
-        Button.MouseButton1Click:Connect(function()
-            module.settings.Enabled = not module.settings.Enabled
-            Button.Text = module.name .. " [" .. (module.settings.Enabled and "ON" or "OFF") .. "]"
-            -- Save immediately
-            SaveSettings(categoryName .. "_" .. module.name, module.settings)
+    local ModuleLayout = Instance.new("UIListLayout")
+    ModuleLayout.Padding = UDim.new(0,5)
+    ModuleLayout.Parent = ModuleScroller
+
+    local CurrentCategory = nil
+
+    local function PopulateModules(categoryName)
+        for _, child in pairs(ModuleScroller:GetChildren()) do
+            if child:IsA("Frame") then
+                child:Destroy()
+            end
+        end
+        CurrentCategory = categoryName
+        local modules = Categories[categoryName] or {}
+
+        for _, module in pairs(modules) do
+            local ModuleFrame = Instance.new("Frame")
+            ModuleFrame.Size = UDim2.new(1,0,0,30)
+            ModuleFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
+            ModuleFrame.BorderSizePixel = 0
+            ModuleFrame.Parent = ModuleScroller
+
+            local ModuleButton = Instance.new("TextButton")
+            ModuleButton.Size = UDim2.new(1,0,1,0)
+            ModuleButton.BackgroundTransparency = 1
+            ModuleButton.TextColor3 = Color3.fromRGB(255,255,255)
+            ModuleButton.Font = Enum.Font.SourceSansBold
+            ModuleButton.TextSize = 18
+            ModuleButton.Text = module.name .. " ["..(module.settings.Enabled and "ON" or "OFF").."]"
+            ModuleButton.Parent = ModuleFrame
+
+            ModuleButton.MouseButton1Click:Connect(function()
+                module.settings.Enabled = not module.settings.Enabled
+                ModuleButton.Text = module.name .. " ["..(module.settings.Enabled and "ON" or "OFF").."]"
+                SaveSettings(categoryName.."_"..module.name, module.settings)
+            end)
+
+            local SettingsOpen = false
+            local SettingsFrame = Instance.new("Frame")
+            SettingsFrame.Size = UDim2.new(1,0,0,0)
+            SettingsFrame.Position = UDim2.new(0,0,0,30)
+            SettingsFrame.BackgroundColor3 = Color3.fromRGB(60,60,60)
+            SettingsFrame.BorderSizePixel = 0
+            SettingsFrame.ClipsDescendants = true
+            SettingsFrame.Parent = ModuleFrame
+
+            local YOffset = 0
+            for key, value in pairs(module.settings) do
+                if key ~= "Enabled" then
+                    local SettingButton = Instance.new("TextButton")
+                    SettingButton.Size = UDim2.new(1,0,0,25)
+                    SettingButton.Position = UDim2.new(0,0,0,YOffset)
+                    SettingButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+                    SettingButton.TextColor3 = Color3.fromRGB(255,255,255)
+                    SettingButton.Font = Enum.Font.SourceSans
+                    SettingButton.TextSize = 16
+                    SettingButton.Text = key.." ["..tostring(value).."]"
+                    SettingButton.Parent = SettingsFrame
+
+                    SettingButton.MouseButton1Click:Connect(function()
+                        if typeof(module.settings[key]) == "boolean" then
+                            module.settings[key] = not module.settings[key]
+                        end
+                        SettingButton.Text = key.." ["..tostring(module.settings[key]).."]"
+                        SaveSettings(categoryName.."_"..module.name,module.settings)
+                    end)
+
+                    YOffset = YOffset + 30
+                end
+            end
+
+            ModuleButton.MouseButton2Click:Connect(function()
+                SettingsOpen = not SettingsOpen
+                if SettingsOpen then
+                    SettingsFrame:TweenSize(UDim2.new(1,0,0,YOffset),"Out","Quad",0.3,true)
+                    ModuleFrame.Size = UDim2.new(1,0,0,30+YOffset)
+                else
+                    SettingsFrame:TweenSize(UDim2.new(1,0,0,0),"Out","Quad",0.3,true)
+                    ModuleFrame.Size = UDim2.new(1,0,0,30)
+                end
+            end)
+        end
+    end
+
+    -- Populate category buttons
+    for categoryName, _ in pairs(Categories) do
+        local CatButton = Instance.new("TextButton")
+        CatButton.Size = UDim2.new(1,0,0,30)
+        CatButton.BackgroundColor3 = Color3.fromRGB(55,55,55)
+        CatButton.TextColor3 = Color3.fromRGB(255,255,255)
+        CatButton.Font = Enum.Font.SourceSansBold
+        CatButton.TextSize = 18
+        CatButton.Text = categoryName
+        CatButton.Parent = LeftPanel
+
+        CatButton.MouseButton1Click:Connect(function()
+            PopulateModules(categoryName)
         end)
     end
 
-    -- Populate UI dynamically
-    for categoryName, modules in pairs(Categories) do
-        local CatLabel = Instance.new("TextLabel")
-        CatLabel.Size = UDim2.new(1, 0, 0, 25)
-        CatLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        CatLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        CatLabel.Font = Enum.Font.SourceSansBold
-        CatLabel.TextSize = 18
-        CatLabel.Text = categoryName
-        CatLabel.Parent = Scroller
-
-        for _, module in pairs(modules) do
-            CreateToggle(module, categoryName)
-        end
+    -- Select first category by default
+    for firstCat,_ in pairs(Categories) do
+        PopulateModules(firstCat)
+        break
     end
 end
 
--- -------------------------
--- Auto-save every 5 seconds (optional)
--- -------------------------
+-- =========================
+-- Auto-save every 5 seconds
+-- =========================
 local saveInterval = 5
 local accumulatedTime = 0
 
@@ -179,18 +256,17 @@ RunService.Heartbeat:Connect(function(dt)
         accumulatedTime = 0
         for categoryName, modules in pairs(Categories) do
             for moduleName, module in pairs(modules) do
-                SaveSettings(categoryName .. "_" .. moduleName, module.settings)
+                SaveSettings(categoryName.."_"..moduleName,module.settings)
             end
         end
     end
 end)
 
--- -------------------------
+-- =========================
 -- Run Everything
--- -------------------------
+-- =========================
 LoadModules()
 CreateUI()
-
 print("VainScript (LocalScript) loaded! Categories and modules:")
 for cat, mods in pairs(Categories) do
     print("-", cat)

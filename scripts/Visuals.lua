@@ -75,6 +75,7 @@ function Visuals.Refresh(category)
 		for _, obj in ipairs(CollectionService:GetTagged(settings.TAG)) do
 			-- Specific exclusion for TamedBees
 			if category == "bee" and obj.Name == "TamedBee" then continue end
+			print(category)
 			Visuals.CreateESP(obj, category)
 		end
 	end

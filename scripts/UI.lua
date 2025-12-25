@@ -1,3 +1,5 @@
+_G.Vain = _G.Vain or {}
+
 -- ui.lua (Fully updated)
 --// SERVICES
 local Players = game:GetService("Players")

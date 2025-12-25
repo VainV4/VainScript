@@ -20,10 +20,11 @@ Config.Settings = {
 	VISIBLE = true,
 	
 	ActiveObjects = {
-		metal = {},
-		star = {},
-		tree = {},
-		bee = {}
+		["metal"] = {},
+    	["bee"] = {},
+    	["tree"] = {},
+    	["star"] = {}
+}
 	}
 }
 return Config

@@ -53,6 +53,8 @@ function Visuals.Refresh(category)
 
 	-- If the category is disabled, deactivate visual components
 	if not settings.ENABLED then
+		print(Config.ActiveObjects)
+		print(category)
 		for target in pairs(Config.ActiveObjects[category]) do
 			-- Look for Beams and Highlights within the object
 			for _, component in ipairs(target:GetDescendants()) do
@@ -80,6 +82,7 @@ function Visuals.Refresh(category)
 		end
 	end
 end
+
 -- Listeners for new spawns [cite: 5]
 for _, cat in ipairs({"metal", "bee", "tree"}) do
 	local tag = Config.Settings[cat:upper() .. "_ESP"].TAG

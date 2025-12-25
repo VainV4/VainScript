@@ -1,6 +1,4 @@
--- VainScript LocalScript Loader
--- All modules and GUI are client-side
-
+-- VainScript LocalScript Loader (Client-Safe, Dynamic)
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
@@ -8,7 +6,7 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
 -- -------------------------
--- Persistence (Executor only)
+-- Persistence (Executor Only)
 -- -------------------------
 local function SaveSettings(name, data)
     if writefile then
@@ -32,6 +30,10 @@ local Categories = {}
 -- UI Toggle
 -- -------------------------
 local uiVisible = true
+
+-- We'll set MainFrame later when creating UI
+local MainFrame
+
 UserInputService.InputBegan:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.RightShift then
         uiVisible = not uiVisible
@@ -48,7 +50,7 @@ local function LoadModules()
     local scriptFolder = "scripts"  -- relative folder
     local function LoadFolder(path)
         local success, files = pcall(function()
-            return listfiles(path)  -- executor-only function
+            return listfiles(path)  -- executor-only
         end)
         if not success then return end
 
@@ -69,7 +71,7 @@ local function LoadModules()
                         settings[k] = savedSettings[k] ~= nil and savedSettings[k] or v
                     end
 
-                    -- Register
+                    -- Register category and module
                     Categories[category] = Categories[category] or {}
                     Categories[category][moduleName] = {
                         name = moduleName,
@@ -77,7 +79,7 @@ local function LoadModules()
                         init = moduleFunc
                     }
 
-                    -- Run module safely in a coroutine
+                    -- Run module safely
                     coroutine.wrap(function()
                         moduleFunc(settings)
                     end)()
@@ -91,7 +93,7 @@ local function LoadModules()
 end
 
 -- -------------------------
--- UI Creation
+-- GUI Creation
 -- -------------------------
 local function CreateUI()
     local CoreGui = game:GetService("CoreGui")
@@ -129,8 +131,8 @@ local function CreateUI()
     UIListLayout.Padding = UDim.new(0, 5)
     UIListLayout.Parent = Scroller
 
-    -- Module buttons
-    local function CreateToggle(module)
+    -- Module toggle button
+    local function CreateToggle(module, categoryName)
         local Button = Instance.new("TextButton")
         Button.Size = UDim2.new(1, 0, 0, 25)
         Button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
@@ -143,7 +145,8 @@ local function CreateUI()
         Button.MouseButton1Click:Connect(function()
             module.settings.Enabled = not module.settings.Enabled
             Button.Text = module.name .. " [" .. (module.settings.Enabled and "ON" or "OFF") .. "]"
-            SaveSettings(module.name, module.settings)
+            -- Save immediately
+            SaveSettings(categoryName .. "_" .. module.name, module.settings)
         end)
     end
 
@@ -159,16 +162,35 @@ local function CreateUI()
         CatLabel.Parent = Scroller
 
         for _, module in pairs(modules) do
-            CreateToggle(module)
+            CreateToggle(module, categoryName)
         end
     end
 end
+
+-- -------------------------
+-- Auto-save every 5 seconds (optional)
+-- -------------------------
+local saveInterval = 5
+local accumulatedTime = 0
+
+RunService.Heartbeat:Connect(function(dt)
+    accumulatedTime = accumulatedTime + dt
+    if accumulatedTime >= saveInterval then
+        accumulatedTime = 0
+        for categoryName, modules in pairs(Categories) do
+            for moduleName, module in pairs(modules) do
+                SaveSettings(categoryName .. "_" .. moduleName, module.settings)
+            end
+        end
+    end
+end)
 
 -- -------------------------
 -- Run Everything
 -- -------------------------
 LoadModules()
 CreateUI()
+
 print("VainScript (LocalScript) loaded! Categories and modules:")
 for cat, mods in pairs(Categories) do
     print("-", cat)

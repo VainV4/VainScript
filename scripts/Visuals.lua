@@ -128,6 +128,10 @@ function Visuals.Toggle(category, state)
 		if data.Beacon then
 			data.Beacon.Transparency = state and 0.5 or 1
 		end
+		if state then
+			_G.Vain.Notify("Enabled " +  category)
+		else
+			_G.Vain.Notify("Disabled " + category)
 	end
 end
 

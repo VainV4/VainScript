@@ -4,6 +4,5 @@
   },
   "Combat": {
     "AimAssist": "modules/Combat/ESP.lua"
-  },
+  }
 }
-

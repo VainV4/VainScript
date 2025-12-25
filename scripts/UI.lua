@@ -280,7 +280,7 @@ Layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 Layout.Parent = Holder
 
 --// NOTIFY FUNCTION
-function Notify(text, duration)
+_G.Vain.Notify = function(text, duration)
 	duration = duration or 4.5
 
 	local frame = Instance.new("TextButton")
@@ -293,7 +293,6 @@ function Notify(text, duration)
 
 	local stroke = Instance.new("UIStroke", frame)
 	stroke.Color = Color3.fromRGB(60,60,70)
-	stroke.Thickness = 1
 
 	local label = Instance.new("TextLabel")
 	label.Text = text
@@ -304,11 +303,10 @@ function Notify(text, duration)
 	label.BackgroundTransparency = 1
 	label.Size = UDim2.new(1,-20,1,-10)
 	label.Position = UDim2.new(0,10,0,5)
-	label.TextXAlignment = Left
-	label.TextYAlignment = Center
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.TextYAlignment = Enum.TextYAlignment.Center
 	label.Parent = frame
 
-	-- slide in
 	frame.Position = UDim2.new(1,50,0,0)
 	TweenService:Create(
 		frame,
@@ -335,9 +333,6 @@ function Notify(text, duration)
 	frame.MouseButton1Click:Connect(remove)
 	task.delay(duration, remove)
 end
-
-
-
 
 --// UI VISIBILITY TOGGLE (FIXED)
 local UIS = game:GetService("UserInputService")

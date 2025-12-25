@@ -1,5 +1,5 @@
 -- visuals.lua
--- Handles ALL ESP logic (Metal, Tree, Bee, Star)
+-- FULLY FIXED ESP SYSTEM (Metal / Tree / Bee / Star)
 
 local Visuals = {}
 _G.Vain.Visuals = Visuals
@@ -9,7 +9,6 @@ local Config = _G.Vain.Config
 --// SERVICES
 local Players = game:GetService("Players")
 local CollectionService = game:GetService("CollectionService")
-local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 
@@ -21,7 +20,12 @@ Config.ActiveObjects = Config.ActiveObjects or {
 	star = {}
 }
 
---// SAFE ROOT RESOLUTION (CRITICAL FIX)
+--// GET SETTINGS
+local function getSettings(category)
+	return Config.Settings[string.upper(category) .. "_ESP"]
+end
+
+--// GET ROOT PART (VERY IMPORTANT)
 local function getRoot(obj)
 	if not obj then return end
 
@@ -32,26 +36,18 @@ local function getRoot(obj)
 	if obj:IsA("Model") then
 		return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
 	end
-
-	if obj.Parent then
-		return getRoot(obj.Parent)
-	end
 end
 
---// GET SETTINGS BY CATEGORY
-local function getSettings(category)
-	return Config.Settings[string.upper(category) .. "_ESP"]
-end
-
---// CLEAN ESP FOR TARGET
+--// CLEAN ESP
 local function cleanup(category, target)
 	local data = Config.ActiveObjects[category][target]
 	if not data then return end
 
-	if data.Highlight then data.Highlight:Destroy() end
-	if data.Beam then data.Beam:Destroy() end
-	if data.A0 then data.A0:Destroy() end
-	if data.A1 then data.A1:Destroy() end
+	for _, inst in pairs(data) do
+		if typeof(inst) == "Instance" then
+			inst:Destroy()
+		end
+	end
 
 	Config.ActiveObjects[category][target] = nil
 end
@@ -63,15 +59,12 @@ function Visuals.CreateESP(target, category)
 
 	local settings = getSettings(category)
 	if not settings or not settings.ENABLED then return end
-
-	if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-		return
-	end
+	if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
 
 	local root = getRoot(target)
 	if not root then return end
 
-	--// STAR COLOR OVERRIDE
+	--// COLOR
 	local color = settings.COLOR
 	if category == "star" then
 		local n = target.Name:lower()
@@ -135,7 +128,7 @@ function Visuals.Toggle(category, state)
 	end
 end
 
---// REFRESH (SCAN EXISTING OBJECTS)
+--// REFRESH EXISTING OBJECTS
 function Visuals.Refresh(category)
 	if not category or category == "metal" then
 		for _, obj in ipairs(CollectionService:GetTagged("hidden-metal")) do
@@ -166,7 +159,7 @@ function Visuals.Refresh(category)
 	end
 end
 
---// COLLECTION LISTENERS (NEW OBJECTS)
+--// NEW OBJECT LISTENERS
 CollectionService:GetInstanceAddedSignal("hidden-metal"):Connect(function(o)
 	Visuals.CreateESP(o, "metal")
 end)
@@ -188,7 +181,7 @@ workspace.DescendantAdded:Connect(function(o)
 	end
 end)
 
---// CHARACTER RESPAWN FIX
+--// CHARACTER RESPAWN
 player.CharacterAdded:Connect(function()
 	task.wait(1)
 	for cat in pairs(Config.ActiveObjects) do
@@ -198,6 +191,3 @@ player.CharacterAdded:Connect(function()
 	end
 	Visuals.Refresh()
 end)
-
---// INITIAL SCAN
-Visuals.Refresh()

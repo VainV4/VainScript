@@ -3,8 +3,7 @@
     "MetalESP": "modules/Visuals/MetalESP.lua"
   },
   "Combat": {
-    "ESP": "modules/Combat/ESP.lua"
+    "AimAssist": "modules/Combat/ESP.lua"
   },
-  "Misc": {}
 }
 

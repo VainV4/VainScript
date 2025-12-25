@@ -354,6 +354,7 @@ UIS.InputBegan:Connect(function(input, gp)
     end
 end)
 
+Notify("Test")
 
 -- DEFAULT TAB
 Panels["Combat"].Visible = true

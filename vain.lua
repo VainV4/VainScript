@@ -176,12 +176,16 @@ local function CreateUI()
     local content = Instance.new("ScrollingFrame", main)
     content.Position = UDim2.new(0,190,0,16)
     content.Size = UDim2.new(1,-206,1,-32)
-    content.CanvasSize = UDim2.new()
     content.ScrollBarThickness = 3
     content.BackgroundTransparency = 1
 
     local contentLayout = Instance.new("UIListLayout", content)
     contentLayout.Padding = UDim.new(0,10)
+
+    -- Auto-update CanvasSize
+    contentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        content.CanvasSize = UDim2.new(0,0,0,contentLayout.AbsoluteContentSize.Y+10)
+    end)
 
     -- Load Modules
     local Modules = {}
@@ -202,6 +206,8 @@ local function CreateUI()
     local function LoadCategory(cat)
         content:ClearAllChildren()
         contentLayout.Parent = content
+        content.CanvasPosition = Vector2.new(0,0)
+
         for _,mod in pairs(Modules[cat]) do
             local card = Instance.new("Frame", content)
             card.Size = UDim2.new(1,0,0,54)
@@ -231,6 +237,14 @@ local function CreateUI()
             local settingsLayout = Instance.new("UIListLayout", settingsFrame)
             settingsLayout.Padding = UDim.new(0,4)
 
+            -- Expand / collapse signal
+            local expanded = false
+            settingsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                if expanded then
+                    Tween(settingsFrame, TweenInfo.new(0.2,Enum.EasingStyle.Quad), {Size=UDim2.new(1,0,0,settingsLayout.AbsoluteContentSize.Y)})
+                end
+            end)
+
             -- Fill settings dynamically
             for key,value in pairs(mod.Settings) do
                 if type(value)=="boolean" then
@@ -252,11 +266,10 @@ local function CreateUI()
             end
 
             -- Expand/collapse
-            local expanded = false
             title.MouseButton1Click:Connect(function()
                 expanded = not expanded
                 local goal = expanded and settingsLayout.AbsoluteContentSize.Y or 0
-                Tween(settingsFrame,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size=UDim2.new(1,0,0,goal)})
+                Tween(settingsFrame,TweenInfo.new(0.25,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{Size = UDim2.new(1,0,0,goal)})
             end)
         end
     end

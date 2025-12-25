@@ -1,240 +1,221 @@
 --========================================
--- Vain Script Hub (Executor / Local Only)
+-- Vain Script Hub (Enhanced Edition)
 --========================================
 
--- Services
 local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
--- Config
--- Ensure this URL points to the RAW github content
 local BASE_URL = "https://raw.githubusercontent.com/VainV4/VainScript/main/"
 local REGISTRY_FILE = "modules.json"
 
+-- Simple Tween Helper
+local function Tween(obj, info, goal)
+    local tween = TweenService:Create(obj, info, goal)
+    tween:Play()
+    return tween
+end
+
 --========================================
--- File Storage (Executor Safe)
+-- Registry & Settings
 --========================================
 
+local Registry = {}
+do
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet(BASE_URL .. REGISTRY_FILE .. "?t=" .. tick()))
+    end)
+    Registry = success and result or {}
+end
+
 local function SaveSettings(name, data)
-    if writefile then
-        writefile(name .. ".json", HttpService:JSONEncode(data))
-    end
+    if writefile then writefile(name .. ".json", HttpService:JSONEncode(data)) end
 end
 
 local function LoadSettings(name)
     if isfile and isfile(name .. ".json") then
-        local success, content = pcall(readfile, name .. ".json")
-        if success then
-            return HttpService:JSONDecode(content)
-        end
+        return HttpService:JSONDecode(readfile(name .. ".json"))
     end
     return {}
 end
 
 --========================================
--- Load Module Registry with Error Handling
+-- Enhanced UI Elements
 --========================================
 
-local Registry
-do
-    -- Added ?t=tick() to bypass GitHub's 5-minute cache
-    local success, result = pcall(function()
-        local url = BASE_URL .. REGISTRY_FILE .. "?t=" .. tick()
-        local response = game:HttpGet(url)
-        return HttpService:JSONDecode(response)
+local function CreateToggle(parent, module, categoryName)
+    local toggleBG = Instance.new("Frame", parent)
+    toggleBG.Size = UDim2.new(0, 45, 0, 22)
+    toggleBG.Position = UDim2.new(1, -60, 0.5, -11)
+    toggleBG.BackgroundColor3 = module.Settings.Enabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(50, 50, 50)
+    Instance.new("UICorner", toggleBG).CornerRadius = UDim.new(1, 0)
+
+    local circle = Instance.new("Frame", toggleBG)
+    circle.Size = UDim2.new(0, 18, 0, 18)
+    circle.Position = module.Settings.Enabled and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+    circle.BackgroundColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", circle).CornerRadius = UDim.new(1, 0)
+
+    local btn = Instance.new("TextButton", toggleBG)
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = ""
+
+    btn.MouseButton1Click:Connect(function()
+        module.Settings.Enabled = not module.Settings.Enabled
+        local goalColor = module.Settings.Enabled and Color3.fromRGB(0, 200, 100) or Color3.fromRGB(50, 50, 50)
+        local goalPos = module.Settings.Enabled and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+        
+        Tween(toggleBG, TweenInfo.new(0.3), {BackgroundColor3 = goalColor})
+        Tween(circle, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Position = goalPos})
+        
+        SaveSettings(categoryName .. "_" .. module.Name, module.Settings)
+        if module.Run then task.spawn(module.Run, module.Settings) end
     end)
+end
 
-    if not success then
-        warn("[Vain] Failed to load modules.json: " .. tostring(result))
-        -- Fallback to empty table so UI still creates the frames
-        Registry = {} 
-    else
-        Registry = result
+local function CreateSlider(parent, name, min, max, default, callback)
+    local sliderFrame = Instance.new("Frame", parent)
+    sliderFrame.Size = UDim2.new(1, -30, 0, 40)
+    sliderFrame.BackgroundTransparency = 1
+    
+    local title = Instance.new("TextLabel", sliderFrame)
+    title.Size = UDim2.new(0.4, 0, 0.5, 0)
+    title.Text = name .. ": " .. default
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.Font = Enum.Font.Gotham
+    title.TextSize = 14
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.BackgroundTransparency = 1
+
+    local barBG = Instance.new("Frame", sliderFrame)
+    barBG.Size = UDim2.new(1, 0, 0, 6)
+    barBG.Position = UDim2.new(0, 0, 0.7, 0)
+    barBG.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    Instance.new("UICorner", barBG)
+
+    local fill = Instance.new("Frame", barBG)
+    fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+    Instance.new("UICorner", fill)
+
+    local dragging = false
+    local function Update(input)
+        local pos = math.clamp((input.Position.X - barBG.AbsolutePosition.X) / barBG.AbsoluteSize.X, 0, 1)
+        local value = math.floor(min + (max - min) * pos)
+        title.Text = name .. ": " .. value
+        Tween(fill, TweenInfo.new(0.1), {Size = UDim2.new(pos, 0, 1, 0)})
+        callback(value)
     end
+
+    barBG.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then Update(input) end
+    end)
 end
 
 --========================================
--- Load Modules
---========================================
-
-local Categories = {}
-
-for categoryName, modules in pairs(Registry) do
-    Categories[categoryName] = {}
-
-    for moduleName, path in pairs(modules) do
-        local success, moduleTable = pcall(function()
-            return loadstring(game:HttpGet(BASE_URL .. path .. "?t=" .. tick()))()
-        end)
-
-        if success and type(moduleTable) == "table" then
-            local defaults = moduleTable.DefaultSettings or { Enabled = false }
-            local saved = LoadSettings(categoryName .. "_" .. moduleName)
-
-            local settings = {}
-            for k, v in pairs(defaults) do
-                settings[k] = saved[k] ~= nil and saved[k] or v
-            end
-
-            Categories[categoryName][moduleName] = {
-                Name = moduleName,
-                Settings = settings,
-                Run = moduleTable.Run
-            }
-
-            -- Start module if it has a Run function
-            if moduleTable.Run then
-                task.spawn(function()
-                    moduleTable.Run(settings)
-                end)
-            end
-        else
-            warn("[Vain] Failed to load module [" .. moduleName .. "]:", moduleTable)
-        end
-    end
-end
-
---========================================
--- UI Creation
+-- Main UI Creation
 --========================================
 
 local function CreateUI()
-    if CoreGui:FindFirstChild("VainUI") then
-        CoreGui.VainUI:Destroy()
+    if CoreGui:FindFirstChild("VainUI") then CoreGui.VainUI:Destroy() end
+
+    local gui = Instance.new("ScreenGui", CoreGui)
+    gui.Name = "VainUI"
+
+    local main = Instance.new("Frame", gui)
+    main.Size = UDim2.new(0, 700, 0, 450)
+    main.Position = UDim2.new(0.5, 0, 0.5, 50) -- Start slightly lower for entrance anim
+    main.AnchorPoint = Vector2.new(0.5, 0.5)
+    main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    main.ClipsDescendants = true
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 12)
+    
+    -- Fade In Animation
+    main.BackgroundTransparency = 1
+    Tween(main, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        BackgroundTransparency = 0
+    })
+
+    local sideBar = Instance.new("Frame", main)
+    sideBar.Size = UDim2.new(0, 180, 1, 0)
+    sideBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    sideBar.BorderSizePixel = 0
+    
+    local scrollContainer = Instance.new("ScrollingFrame", main)
+    scrollContainer.Position = UDim2.new(0, 190, 0, 20)
+    scrollContainer.Size = UDim2.new(1, -210, 1, -40)
+    scrollContainer.BackgroundTransparency = 1
+    scrollContainer.ScrollBarThickness = 2
+    local listLayout = Instance.new("UIListLayout", scrollContainer)
+    listLayout.Padding = UDim.new(0, 8)
+
+    -- Categories & Modules Processing
+    local CategoriesData = {}
+    for cat, mods in pairs(Registry) do
+        CategoriesData[cat] = {}
+        for name, path in pairs(mods) do
+            local success, mod = pcall(function() return loadstring(game:HttpGet(BASE_URL .. path))() end)
+            if success then
+                CategoriesData[cat][name] = {Name = name, Settings = LoadSettings(cat.."_"..name) or {Enabled=false}, Run = mod.Run}
+            end
+        end
     end
 
-    local gui = Instance.new("ScreenGui")
-    gui.Name = "VainUI"
-    gui.ResetOnSpawn = false
-    gui.Parent = CoreGui
-
-    -- Main Window
-    local main = Instance.new("Frame", gui)
-    main.Size = UDim2.new(0, 820, 0, 520)
-    main.Position = UDim2.new(0.5, 0, 0.5, 0)
-    main.AnchorPoint = Vector2.new(0.5, 0.5)
-    main.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-    main.BorderSizePixel = 0
-    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 18)
-
-    -- Category Panel (Side Bar)
-    local categoryPanel = Instance.new("Frame", main)
-    categoryPanel.Size = UDim2.new(0, 200, 1, 0)
-    categoryPanel.BackgroundColor3 = Color3.fromRGB(26, 26, 26)
-    categoryPanel.BorderSizePixel = 0
-    Instance.new("UICorner", categoryPanel).CornerRadius = UDim.new(0, 18)
-
-    local categoryLayout = Instance.new("UIListLayout", categoryPanel)
-    categoryLayout.Padding = UDim.new(0, 10)
-    categoryLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    categoryLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-    -- Module Panel (Right Side Content)
-    local modulePanel = Instance.new("ScrollingFrame", main)
-    modulePanel.Position = UDim2.new(0, 210, 0, 14)
-    modulePanel.Size = UDim2.new(1, -224, 1, -28)
-    modulePanel.CanvasSize = UDim2.new(0, 0, 0, 0)
-    modulePanel.ScrollBarThickness = 4
-    modulePanel.BackgroundTransparency = 1
-    modulePanel.BorderSizePixel = 0
-
-    local moduleLayout = Instance.new("UIListLayout", modulePanel)
-    moduleLayout.Padding = UDim.new(0, 10)
-
-    moduleLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        modulePanel.CanvasSize = UDim2.new(0, 0, 0, moduleLayout.AbsoluteContentSize.Y + 10)
-    end)
-
-    -- Function to Load Category Items
-    local function LoadCategory(categoryName)
-        -- Clear existing module cards
-        for _, child in pairs(modulePanel:GetChildren()) do
-            if child:IsA("Frame") then child:Destroy() end
-        end
-
-        if not Categories[categoryName] then return end
-
-        for _, module in pairs(Categories[categoryName]) do
-            local card = Instance.new("Frame", modulePanel)
+    local function LoadCategory(catName)
+        scrollContainer:ClearAllChildren()
+        listLayout.Parent = scrollContainer
+        
+        for _, mod in pairs(CategoriesData[catName]) do
+            local card = Instance.new("Frame", scrollContainer)
             card.Size = UDim2.new(1, 0, 0, 50)
-            card.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-            card.BorderSizePixel = 0
-            Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
-
+            card.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
+            
             local label = Instance.new("TextLabel", card)
-            label.Size = UDim2.new(1, -80, 1, 0)
             label.Position = UDim2.new(0, 15, 0, 0)
-            label.BackgroundTransparency = 1
-            label.Text = module.Name
+            label.Size = UDim2.new(0.5, 0, 1, 0)
+            label.Text = mod.Name
             label.TextColor3 = Color3.new(1, 1, 1)
-            label.Font = Enum.Font.GothamBold
-            label.TextSize = 16
+            label.Font = Enum.Font.GothamMedium
+            label.TextSize = 14
+            label.BackgroundTransparency = 1
             label.TextXAlignment = Enum.TextXAlignment.Left
 
-            local toggle = Instance.new("TextButton", card)
-            toggle.Size = UDim2.new(0, 60, 0, 30)
-            toggle.Position = UDim2.new(1, -70, 0.5, -15)
-            toggle.BackgroundColor3 = module.Settings.Enabled and Color3.fromRGB(0, 180, 100) or Color3.fromRGB(180, 60, 60)
-            toggle.Text = module.Settings.Enabled and "ON" or "OFF"
-            toggle.TextColor3 = Color3.new(1, 1, 1)
-            toggle.Font = Enum.Font.GothamBold
-            toggle.TextSize = 12
-            Instance.new("UICorner", toggle).CornerRadius = UDim.new(0, 8)
-
-            toggle.MouseButton1Click:Connect(function()
-                module.Settings.Enabled = not module.Settings.Enabled
-                toggle.Text = module.Settings.Enabled and "ON" or "OFF"
-                toggle.BackgroundColor3 = module.Settings.Enabled and Color3.fromRGB(0, 180, 100) or Color3.fromRGB(180, 60, 60)
-                SaveSettings(categoryName .. "_" .. module.Name, module.Settings)
-                
-                -- Re-run the module logic if needed or handle it within the module's own loop
-                if module.Run then 
-                    task.spawn(module.Run, module.Settings) 
-                end
-            end)
+            CreateToggle(card, mod, catName)
         end
     end
 
-    -- Create Category Buttons
-    local firstCategory = nil
-    for categoryName in pairs(Categories) do
-        if not firstCategory then firstCategory = categoryName end
+    -- Create Side Buttons
+    local catLayout = Instance.new("UIListLayout", sideBar)
+    catLayout.Padding = UDim.new(0, 5)
+    catLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+    for name, _ in pairs(CategoriesData) do
+        local b = Instance.new("TextButton", sideBar)
+        b.Size = UDim2.new(0.9, 0, 0, 40)
+        b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        b.Text = name
+        b.TextColor3 = Color3.fromRGB(200, 200, 200)
+        b.Font = Enum.Font.Gotham
+        Instance.new("UICorner", b)
         
-        local btn = Instance.new("TextButton", categoryPanel)
-        btn.Size = UDim2.new(1, -20, 0, 45)
-        btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-        btn.Text = categoryName
-        btn.TextColor3 = Color3.new(1, 1, 1)
-        btn.Font = Enum.Font.GothamBold
-        btn.TextSize = 16
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-
-        btn.MouseButton1Click:Connect(function()
-            LoadCategory(categoryName)
+        b.MouseButton1Click:Connect(function() 
+            LoadCategory(name) 
+            Tween(b, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)})
+            task.wait(0.1)
+            Tween(b, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)})
         end)
-    end
-
-    -- Load the first category by default if it exists
-    if firstCategory then
-        LoadCategory(firstCategory)
     end
 end
 
---========================================
--- UI Toggle (Right Shift)
---========================================
-
-local uiVisible = true
-UserInputService.InputBegan:Connect(function(input, gp)
-    if not gp and input.KeyCode == Enum.KeyCode.RightShift then
-        uiVisible = not uiVisible
-        if CoreGui:FindFirstChild("VainUI") then
-            CoreGui.VainUI.Enabled = uiVisible
-        end
-    end
-end)
-
--- Initialize
 CreateUI()
-print("[Vain] Hub loaded successfully")
